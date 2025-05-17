@@ -38,7 +38,7 @@ MeinCraft is a simple interpreted language implemented in Java using ANTLR4. It 
    ./make.ps1
 
 3. **Example file:**
-   
+   ```text
 x = read;
 if (x == 1) then:
     print("one");
