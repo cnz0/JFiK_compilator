@@ -3,12 +3,9 @@
 MeinCraft is a simple interpreted language implemented in Java using ANTLR4. It supports basic data types, conditionals, loops, arrays, matrices, and LLVM IR code generation for execution via Clang. The project is primarily educational, showcasing compiler construction and code generation techniques.
 
 This project was developed as part of a university course on interpreters and compilers. It focuses on:
-
-Lexical/syntactic parsing via ANTLR4
-
-Runtime interpretation and static LLVM code generation
-
-Simple type inference and runtime scope handling
+- Lexical/syntactic parsing via ANTLR4
+- Runtime interpretation and static LLVM code generation
+- Simple type inference and runtime scope handling
 
 ## Features
 
