@@ -39,11 +39,11 @@ MeinCraft is a simple interpreted language implemented in Java using ANTLR4. It 
 
 3. **Example file:**
    ```text
-x = read;
-if (x == 1) then:
-    print("one");
-elif (x == 2) then:
-    print("two");
-else:
-    print("other");
-end
+   x = read;
+   if (x == 1) then:
+     print("one");
+   elif (x == 2) then:
+     print("two");
+   else:
+     print("other");
+   end
