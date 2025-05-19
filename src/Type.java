@@ -4,5 +4,7 @@ public enum Type {
     INT,
     FLOAT,
     ARRAY,
-    MATRIX
+    MATRIX,
+    BOOLEAN,
+    STRING
 }

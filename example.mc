@@ -1,4 +1,9 @@
-x = [[1, 5.2111],[3.3, 2.1, 5]];
-print(x[1]);
-x[1][2] = read;
-print(x[1]);
+x = 12;
+
+if (x == 0) then:
+    print("zero");
+elif (x == 1) then:
+    print("jeden");
+else:
+    print("inne");
+end

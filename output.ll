@@ -1,3 +1,6 @@
+@.str9 = constant [6 x i8] c"inne\0A\00"
+@.str7 = constant [7 x i8] c"jeden\0A\00"
+@.str3 = constant [6 x i8] c"zero\0A\00"
 @print_fmt = constant [4 x i8] c"%d\0A\00"
 @print_fmt_float = constant [4 x i8] c"%g\0A\00"
 @read_fmt = constant [7 x i8] c"read: \00"
@@ -8,33 +11,36 @@
 declare i32 @printf(i8*, ...)
 declare i32 @scanf(i8*, ...)
 
+@scanf_fmt_str = constant [3 x i8] c"%s\00"
+@true_str = constant [6 x i8] c"true\0A\00"
+@false_str = constant [7 x i8] c"false\0A\00"
 define i32 @main() {
 entry:
-  %tmp0 = alloca double
-  store double 3.3, double* %tmp0
-  %tmp1 = load double, double* %tmp0
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt_float, i32 0, i32 0), double %tmp1)
-  %tmp2 = alloca double
-  store double 2.1, double* %tmp2
-  %tmp3 = load double, double* %tmp2
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt_float, i32 0, i32 0), double %tmp3)
-  %tmp4 = alloca i32
-  store i32 5, i32* %tmp4
-  %tmp5 = load i32, i32* %tmp4
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt, i32 0, i32 0), i32 %tmp5)
-  %arr_x_1_2 = alloca double
-  store double 3.14, double* %arr_x_1_2
-  %tmp6 = alloca double
-  store double 3.3, double* %tmp6
-  %tmp7 = load double, double* %tmp6
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt_float, i32 0, i32 0), double %tmp7)
-  %tmp8 = alloca double
-  store double 2.1, double* %tmp8
-  %tmp9 = load double, double* %tmp8
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt_float, i32 0, i32 0), double %tmp9)
-  %tmp10 = alloca double
-  store double 3.14, double* %tmp10
-  %tmp11 = load double, double* %tmp10
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt_float, i32 0, i32 0), double %tmp11)
+  %x = alloca i32
+  store i32 12, i32* %x
+  %tmp1 = alloca i1
+  store i1 0, i1* %tmp1
+  %tmp2 = load i1, i1* %tmp1
+  %tmp1_bool = icmp ne i1 %tmp2, 0
+  br i1 %tmp1_bool, label %if_if_0, label %elif_0_0
+if_if_0:
+  %tmp4 = getelementptr inbounds [6 x i8], [6 x i8]* @.str3, i32 0, i32 0
+  call i32 (i8*, ...) @printf(i8* %tmp4)
+  br label %if_end_0
+elif_0_0:
+  %tmp5 = alloca i1
+  store i1 0, i1* %tmp5
+  %tmp6 = load i1, i1* %tmp5
+  %tmp5_bool = icmp ne i1 %tmp6, 0
+  br i1 %tmp5_bool, label %elif_true_0_0, label %if_else_0
+elif_true_0_0:
+  %tmp8 = getelementptr inbounds [7 x i8], [7 x i8]* @.str7, i32 0, i32 0
+  call i32 (i8*, ...) @printf(i8* %tmp8)
+  br label %if_end_0
+if_else_0:
+  %tmp10 = getelementptr inbounds [6 x i8], [6 x i8]* @.str9, i32 0, i32 0
+  call i32 (i8*, ...) @printf(i8* %tmp10)
+  br label %if_end_0
+if_end_0:
   ret i32 0
 }

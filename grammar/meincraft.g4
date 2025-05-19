@@ -7,10 +7,21 @@ stat
     | 'print' expr ';'                        # PrintStat
     | ID '=' 'read' ';'                       # ReadStat
     | ID (LBRACK expr RBRACK)+ '=' expr ';'   # ArrayAssignStat
+    | 'if' '(' cond=expr ')' 'then:' ifBranch+=stat+
+      ('elif' '(' elifCond+=expr ')' 'then:' elifBranch+=stat+)* 
+      ('else:' elseBranch+=stat+)? 'end'      # IfStat
     ;
 
 expr
-  : LBRACK exprList? RBRACK              # ArrayLiteral
+  : expr '==' expr                      # EqExpr
+  | LBRACK exprList? RBRACK             # ArrayLiteral
+  | expr AND expr                       # AndExpr
+  | expr OR expr                        # OrExpr
+  | expr XOR expr                       # XorExpr
+  | expr NEG                            # NegExpr
+  | TRUE                                # TrueExpr
+  | FALSE                               # FalseExpr
+  | STRING                              # StringExpr
   | expr '*' expr                        # MulExpr
   | expr '/' expr                        # DivExpr
   | expr '+' expr                        # AddExpr
@@ -26,6 +37,13 @@ expr
 exprList
   : expr (COMMA expr)* ;
 
+TRUE   : 'true';
+FALSE  : 'false';
+AND     : 'AND';
+OR      : 'OR';
+XOR     : 'XOR';
+NEG     : 'NEG';
+STRING : '"' ( ~["\\\r\n] )* '"' ;
 ID  : [a-zA-Z]+ ;
 INT : [0-9]+ ;
 FLOAT : [0-9]+ '.' [0-9]+;
