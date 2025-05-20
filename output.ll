@@ -12,27 +12,21 @@ declare i32 @scanf(i8*, ...)
 @false_str = constant [7 x i8] c"false\0A\00"
 define i32 @main() {
 entry:
-  %i = alloca i32
-  store i32 0, i32* %i
-  br label %for_start_tmp0
-for_start_tmp0:
   %tmp1 = alloca i1
-  %tmp2 = load i32, i32* %i
-  %tmp3 = icmp sle i32 %tmp2, 10
-  store i1 %tmp3, i1* %tmp1
-  %tmp4 = load i1, i1* %tmp1
-  %tmp1_bool = icmp ne i1 %tmp4, 0
-  br i1 %tmp1_bool, label %for_body_tmp0, label %for_end_tmp0
-for_body_tmp0:
-  %tmp5 = alloca i32
-  %tmp6 = load i32, i32* %i
-  store i32 %tmp6, i32* %tmp5
-  %tmp7 = load i32, i32* %tmp5
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt, i32 0, i32 0), i32 %tmp7)
-  %tmp8 = load i32, i32* %i
-  %tmp9 = add i32 %tmp8, 1
-  store i32 %tmp9, i32* %i
-  br label %for_start_tmp0
-for_end_tmp0:
+  store i1 1, i1* %tmp1
+  %tmp2 = load i1, i1* %tmp1
+  %tmp1_bool = icmp ne i1 %tmp2, 0
+  br i1 %tmp1_bool, label %if_if_tmp0, label %if_else_tmp0
+if_if_tmp0:
+  br label %if_end_tmp0
+if_else_tmp0:
+  br label %if_end_tmp0
+if_end_tmp0:
+  %x = alloca i32
+  store i32 0, i32* %x
+  %tmp3 = alloca i32
+  store i32 0, i32* %tmp3
+  %tmp4 = load i32, i32* %tmp3
+  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @print_fmt, i32 0, i32 0), i32 %tmp4)
   ret i32 0
 }

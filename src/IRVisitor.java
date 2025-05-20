@@ -5,13 +5,23 @@ import gen.meincraftParser;
 import gen.meincraftParser.*;
 import src.Type;
 import src.Value;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.*;
 
 public class IRVisitor extends meincraftBaseVisitor<Value> {
     private final IRGenerator ir = new IRGenerator();
-    private final Map<String, Object> variables = new HashMap<>();
+    private final Map<String, Value> variables = new HashMap<>();
     private final Map<String, List<Value>> arrays = new HashMap<>();
+
+    private final Map<String, FunctionDefContext> functions = new HashMap<>();
+    private final Deque<Map<String, Value>> callStack = new ArrayDeque<>();
+
+    @Override
+    public Value visitFunctionDef(meincraftParser.FunctionDefContext ctx) {
+        functions.put(ctx.ID().getText(), ctx);
+        return null;
+    }
 
     @Override
     public Value visitProg(ProgContext ctx) {
@@ -172,38 +182,44 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     @Override
     public Value visitArrayAccess(meincraftParser.ArrayAccessContext ctx) {
         String varName = ctx.ID().getText();
-        Object current = arrays.getOrDefault(varName, new ArrayList<>());
-    
+        Value root = variables.getOrDefault(varName, new Value(Type.ARRAY, new ArrayList<Value>()));
+
+        if (root.type() != Type.ARRAY) {
+            throw new RuntimeException("Zmiennej " + varName + " nie można indeksować jako tablicy.");
+        }
+
+        Object current = root.value();
+
         for (meincraftParser.ExprContext indexExpr : ctx.expr()) {
             int index = ((Number) visit(indexExpr).value()).intValue();
-    
+
             if (current instanceof List<?> list && index < list.size()) {
                 current = ((Value) list.get(index)).value();
             } else {
-                return new Value(Type.INT, 0); // domyślnie 0 przy błędzie
+                return new Value(Type.INT, 0); // domyślna wartość przy błędzie
             }
         }
-    
+
         if (current instanceof Number n) {
             return (n instanceof Double)
                 ? new Value(Type.FLOAT, n)
                 : new Value(Type.INT, n);
         }
-    
-        if (current instanceof String name) {
-            // zakładamy, że to alias IR (tymczasowa zmienna z read)
-            // nie możemy wywnioskować typu jednoznacznie – domyślnie INT
-            return new Value(Type.INT, name); // lub FLOAT, jeśli jesteś w stanie to wykryć wcześniej
+
+        if (current instanceof Boolean b) {
+            return new Value(Type.BOOLEAN, b);
         }
-    
+
+        if (current instanceof String s) {
+            return new Value(Type.STRING, s);
+        }
+
         if (current instanceof List<?> list) {
             return new Value(Type.ARRAY, list);
         }
-    
-        return new Value(Type.INT, 0);
+
+        return new Value(Type.INT, 0); // fallback
     }
-    
-    
 
     @Override
     public Value visitIntExpr(IntExprContext ctx) {
@@ -223,23 +239,8 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             return new Value(Type.ARRAY, arrays.get(varName));
         }
     
-        Object raw = variables.getOrDefault(varName, 0);
-    
-        if (raw instanceof Value v) {
-            return v;
-        }
-    
-        if (raw instanceof Boolean b) {
-            return new Value(Type.BOOLEAN, b);
-        } else if (raw instanceof Double d) {
-            return new Value(Type.FLOAT, d);
-        } else if (raw instanceof Integer i) {
-            return new Value(Type.INT, i);
-        } else if (raw instanceof String s) {
-            return new Value(Type.STRING, s);
-        }
-    
-        return new Value(Type.INT, 0); // fallback
+        Value raw = variables.getOrDefault(varName, new Value(Type.INT, 0));
+        return raw;
     }
 
     @Override
@@ -516,4 +517,52 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         ir.compareEqual(tmp, left, right); // delegujemy całość do IRGeneratora
         return new Value(Type.BOOLEAN, tmp);
     }
+
+    @Override
+    public Value visitFunctionCall(meincraftParser.FunctionCallContext ctx) {
+        String name = ctx.ID().getText();
+        FunctionDefContext fn = functions.get(name);
+        if (fn == null) throw new RuntimeException("Nieznana funkcja: " + name);
+
+        // 1. Parametry i argumenty
+        List<String> params = fn.paramList() != null
+            ? fn.paramList().ID().stream().map(ParseTree::getText).toList()
+            : List.of();
+
+        List<Value> args = ctx.argList() != null
+            ? ctx.argList().expr().stream().map(this::visit).toList()
+            : List.of();
+
+        if (params.size() != args.size()) {
+            throw new RuntimeException("Argument mismatch: " + name);
+        }
+
+        // 2. Przechowujemy aktualne zmienne i wchodzimy w zakres funkcji
+        callStack.push(new HashMap<>(variables));
+        variables.clear();
+
+        for (int i = 0; i < params.size(); i++) {
+            variables.put(params.get(i), args.get(i));
+        }
+
+        // 3. Wykonaj ciało funkcji
+        Value result = null;
+
+        for (StatContext s : fn.stat()) {
+            if (s instanceof meincraftParser.ReturnStatContext ret) {
+                result = visit(ret.expr());
+                break; // zakończ funkcję po returnie
+            } else {
+                visit(s);
+            }
+        }
+
+        // 4. Przywracamy poprzedni zakres zmiennych
+        variables.clear();
+        variables.putAll(callStack.pop());
+
+        // 5. Domyślnie zwracamy 0 (jak void)
+        return result != null ? result : new Value(Type.INT, 0);
+    }
+
 }

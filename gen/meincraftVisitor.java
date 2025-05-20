@@ -66,6 +66,51 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitWhileStat(meincraftParser.WhileStatContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code FunctionDefStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionDefStat(meincraftParser.FunctionDefStatContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FunctionCallStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionCallStat(meincraftParser.FunctionCallStatContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ReturnStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitReturnStat(meincraftParser.ReturnStatContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link meincraftParser#functionDef}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionDef(meincraftParser.FunctionDefContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link meincraftParser#functionCall}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionCall(meincraftParser.FunctionCallContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link meincraftParser#paramList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParamList(meincraftParser.ParamListContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link meincraftParser#argList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArgList(meincraftParser.ArgListContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code AndExpr}
 	 * labeled alternative in {@link meincraftParser#expr}.
 	 * @param ctx the parse tree
@@ -170,6 +215,13 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitDivExpr(meincraftParser.DivExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FunctionCallExpr}
+	 * labeled alternative in {@link meincraftParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionCallExpr(meincraftParser.FunctionCallExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ReadExpr}
 	 * labeled alternative in {@link meincraftParser#expr}.

@@ -295,18 +295,18 @@ public class IRGenerator {
         String lval = loadValue(left);
         String rval = loadValue(right);
 
-        String tmp = newTmp();
-        builder.append("  %").append(tmp)
+        String cmpTmp = newTmp(); // zamiast tmp
+        builder.append("  %").append(cmpTmp)
             .append(" = icmp eq i32 %").append(lval)
             .append(", %").append(rval).append("\n");
 
-        builder.append("  store i1 %").append(tmp)
+        builder.append("  store i1 %").append(cmpTmp)
             .append(", i1* %").append(resultPtr).append("\n");
     }
 
     public String loadValue(Value v) {
         if (v.value() instanceof String alias) {
-            String tmp = newTmp();
+            String tmp = newTmp();  // ZAWSZE nowy tmp
             switch (v.type()) {
                 case INT -> builder.append("  %").append(tmp).append(" = load i32, i32* %").append(alias).append("\n");
                 case FLOAT -> builder.append("  %").append(tmp).append(" = load double, double* %").append(alias).append("\n");
@@ -314,7 +314,7 @@ public class IRGenerator {
             }
             return tmp;
         }
-        return v.value().toString(); // jeśli to stała, np. "4"
+        return v.value().toString();
     }
   
 }
