@@ -52,6 +52,20 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIfStat(meincraftParser.IfStatContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code ForStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitForStat(meincraftParser.ForStatContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code WhileStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhileStat(meincraftParser.WhileStatContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code AndExpr}
 	 * labeled alternative in {@link meincraftParser#expr}.
 	 * @param ctx the parse tree

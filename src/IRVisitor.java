@@ -33,10 +33,10 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         if (result.type() == Type.ARRAY) {
             arrays.put(varName, (List<Value>) result.value());
         } else if (result.type() == Type.STRING) {
-            variables.put(varName, result.value());
+            variables.put(varName, result);
             ir.declareString(varName, (String) result.value());
         } else {
-            variables.put(varName, result.value());
+            variables.put(varName, result);
             ir.declareVariable(varName, result.type());
             ir.assignValue(varName, result);
         }
@@ -408,7 +408,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
 
     @Override
     public Value visitIfStat(meincraftParser.IfStatContext ctx) {
-        int ifId = ir.tmpCounter++;
+        String ifId = ir.newTmp();
 
         String elseLabel = "if_else_" + ifId;
         String endLabel = "if_end_" + ifId;
@@ -457,6 +457,46 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     }
 
     @Override
+    public Value visitForStat(meincraftParser.ForStatContext ctx) {
+        String loopVar = ctx.ID(0).getText();
+        Value startVal = visit(ctx.expr(0));
+        Value endVal = visit(ctx.expr(1));
+
+        if (startVal.type() != Type.INT || endVal.type() != Type.INT) {
+            throw new RuntimeException("FOR range bounds must be integers.");
+        }
+
+        ir.declareVariable(loopVar, Type.INT);
+        ir.assignValue(loopVar, startVal);
+        variables.put(loopVar, new Value(Type.INT, loopVar));
+
+        String loopId = ir.newTmp(); 
+        String condVar = ir.newTmp();
+        String loopStart = "for_start_" + loopId;
+        String loopBody = "for_body_" + loopId;
+        String loopEnd = "for_end_" + loopId;
+
+        ir.branch(loopStart);
+        ir.label(loopStart);
+        ir.declareVariable(condVar, Type.BOOLEAN);
+
+        ir.compareForLoop(loopVar, startVal, endVal, condVar);
+        ir.ifStart(condVar, loopBody, loopEnd, Type.BOOLEAN);
+
+        ir.label(loopBody);
+        for (meincraftParser.StatContext stat : ctx.stat()) {
+            visit(stat);
+        }
+
+        ir.incrementLoopVar(loopVar, startVal, endVal);
+        ir.branch(loopStart);
+        ir.label(loopEnd);
+
+        return null;
+    }
+
+
+    @Override
     public Value visitEqExpr(meincraftParser.EqExprContext ctx) {
         Value left = visit(ctx.expr(0));
         Value right = visit(ctx.expr(1));
@@ -465,16 +505,15 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             throw new RuntimeException("Cannot compare different types: " + left.type() + " vs " + right.type());
         }
 
-        Object l = left.value();
-        Object r = right.value();
+        if (left.value() instanceof Number && right.value() instanceof Number) {
+            double l = ((Number) left.value()).doubleValue();
+            double r = ((Number) right.value()).doubleValue();
+            return new Value(Type.BOOLEAN, l == r);
+        }
 
-        boolean result = switch (left.type()) {
-            case INT, FLOAT -> Double.parseDouble(l.toString()) == Double.parseDouble(r.toString());
-            case BOOLEAN -> ((boolean) l) == ((boolean) r);
-            case STRING -> l.equals(r);
-            default -> false;
-        };
-
-        return new Value(Type.BOOLEAN, result);
+        String tmp = ir.newTmp(); // alloca i1
+        ir.declareVariable(tmp, Type.BOOLEAN);
+        ir.compareEqual(tmp, left, right); // delegujemy całość do IRGeneratora
+        return new Value(Type.BOOLEAN, tmp);
     }
 }

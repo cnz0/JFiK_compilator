@@ -1,9 +1,15 @@
 package src;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import src.Value;
@@ -11,12 +17,14 @@ import src.Type;
 
 public class IRGenerator {
     private StringBuilder builder = new StringBuilder();
-    public int tmpCounter = 0;
+    private int tmpCounter = 0;
+    private final Map<String, String> loadedAliases = new HashMap<>();
 
     private final Set<String> declaredVariables = new HashSet<>();
 
     public String newTmp() {
-        return "tmp" + (tmpCounter++);
+        String tmpName = "tmp" + tmpCounter++;
+        return tmpName;
     }
 
     public IRGenerator() {
@@ -57,10 +65,12 @@ public class IRGenerator {
 
         if (value.type() == Type.INT) {
             if (raw instanceof String tmpVarName) {
-                builder.append("  %").append(name)
+                String tmp = newTmp();
+                builder.append("  %").append(tmp)
                     .append(" = load i32, i32* %").append(tmpVarName).append("\n");
+                builder.append("  store i32 %").append(tmp).append(", i32* %").append(name).append("\n");
             } else if (raw instanceof Number num) {
-                builder.append("  store i32 ").append(num.intValue()).append(", i32* %").append(name).append("\n");
+                builder.append("  store i32 ").append(num.intValue()).append(", i32* %").append(name).append("\n\n");
             } else {
                 System.out.println("[INT] Invalid value type: " + raw);
             }
@@ -110,8 +120,17 @@ public class IRGenerator {
     }
 
     public void writeToFile(String filename) {
-        try (FileWriter fw = new FileWriter(filename)) {
-            fw.write(builder.toString());
+        String clean = builder.toString()
+            .replaceAll("[\u0000-\u001F&&[^\r\n\t]]", "") // usuwamy kontrolne znaki
+            .replaceAll("\r\n", "\n"); // standaryzujemy na Unix EOL
+
+        try (BufferedWriter fw = new BufferedWriter(new FileWriter(filename))) {
+            String[] lines = clean.split("\n");
+            for (String line : lines) {
+                if (!line.trim().isEmpty()) {
+                    fw.write(line + "\n");
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -173,7 +192,7 @@ public class IRGenerator {
     }
     
     public void printRawString(String value) {
-        String label = ".str" + tmpCounter++;
+        String label = ".str" + newTmp();
         int len = value.length() + 2; // \n + \0
     
         String escaped = value.replace("\\", "\\5C").replace("\"", "\\22");
@@ -230,5 +249,72 @@ public class IRGenerator {
     public void branch(String target) {
         builder.append("  br label %").append(target).append("\n");
     }
-    
+
+    public void compareForLoop(String varName, Value startVal, Value endVal, String condName) {
+        String loaded = newTmp();
+        builder.append("  %").append(loaded)
+            .append(" = load i32, i32* %").append(varName).append("\n");
+
+        int start = ((Number) startVal.value()).intValue();
+        int end = ((Number) endVal.value()).intValue();
+
+        boolean ascending = start <= end;
+
+        String cmpTmp = newTmp();
+        if (ascending) {
+            builder.append("  %").append(cmpTmp)
+                .append(" = icmp sle i32 %").append(loaded).append(", ").append(end).append("\n");
+        } else {
+            builder.append("  %").append(cmpTmp)
+                .append(" = icmp sge i32 %").append(loaded).append(", ").append(end).append("\n");
+        }
+
+        builder.append("  store i1 %").append(cmpTmp)
+            .append(", i1* %").append(condName).append("\n");
+    }
+
+
+    public void incrementLoopVar(String varName, Value startVal, Value endVal) {
+        String loaded = newTmp();
+        builder.append("  %").append(loaded).append(" = load i32, i32* %").append(varName).append("\n");
+
+        int start = ((Number) startVal.value()).intValue();
+        int end = ((Number) endVal.value()).intValue();
+
+        String next = newTmp();
+        if (start <= end) {
+            builder.append("  %").append(next).append(" = add i32 %").append(loaded).append(", 1\n");
+        } else {
+            builder.append("  %").append(next).append(" = sub i32 %").append(loaded).append(", 1\n");
+        }
+
+        builder.append("  store i32 %").append(next).append(", i32* %").append(varName).append("\n");
+    }
+
+    public void compareEqual(String resultPtr, Value left, Value right) {
+        String lval = loadValue(left);
+        String rval = loadValue(right);
+
+        String tmp = newTmp();
+        builder.append("  %").append(tmp)
+            .append(" = icmp eq i32 %").append(lval)
+            .append(", %").append(rval).append("\n");
+
+        builder.append("  store i1 %").append(tmp)
+            .append(", i1* %").append(resultPtr).append("\n");
+    }
+
+    public String loadValue(Value v) {
+        if (v.value() instanceof String alias) {
+            String tmp = newTmp();
+            switch (v.type()) {
+                case INT -> builder.append("  %").append(tmp).append(" = load i32, i32* %").append(alias).append("\n");
+                case FLOAT -> builder.append("  %").append(tmp).append(" = load double, double* %").append(alias).append("\n");
+                case BOOLEAN -> builder.append("  %").append(tmp).append(" = load i1, i1* %").append(alias).append("\n");
+            }
+            return tmp;
+        }
+        return v.value().toString(); // jeśli to stała, np. "4"
+    }
+  
 }

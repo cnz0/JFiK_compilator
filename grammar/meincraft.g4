@@ -10,6 +10,8 @@ stat
     | 'if' '(' cond=expr ')' 'then:' ifBranch+=stat+
       ('elif' '(' elifCond+=expr ')' 'then:' elifBranch+=stat+)* 
       ('else:' elseBranch+=stat+)? 'end'      # IfStat
+    | 'for' '(' ID '=' expr 'to' ID '=' expr ')' 'do:' stat+ 'end' #ForStat
+    | 'while' '(' expr ')' 'do:' stat+ 'end'  # WhileStat
     ;
 
 expr
