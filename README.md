@@ -42,13 +42,56 @@ This project was developed as part of a university course on interpreters and co
    ```bash
    ./make.ps1
 
-3. **Example file:**
-   ```text
-   x = read;
-   if (x == 1) then:
-     print("one");
-   elif (x == 2) then:
-     print("two");
-   else:
-     print("other");
-   end
+3. **Examples:**
+```text
+if statemets:
+    
+x = read;
+if (x == 1) then:
+  print("one");
+elif (x == 2) then:
+  print("two");
+else:
+  print("other");
+end
+
+for loop:
+
+for (i = 0 to i = 3) do:
+  print(i);
+end
+
+function:
+
+def add(a, b) as:
+  return a + b;
+end
+
+x = add(3, 7);
+print(x);
+
+variables scope:
+
+x = 99;
+
+def example() as:
+  private x = 123;
+  print(x);
+end
+
+example();
+print(x);
+
+structure:
+
+struct car:
+  price = 10000;
+  name = "volkswagen";
+  owned = true;
+end
+
+print(car);
+print(car.get(price));
+tmp = car.set(price = 1234);
+print(car.get(price));
+
