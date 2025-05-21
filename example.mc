@@ -1,13 +1,10 @@
-def add(a, b) as:
-  x = read;
-  if (x == 1) then:
-    print(a+b);
-  elif (x == 2) then:
-    print(a-b);
-  else:
-    print(a*b);
-  end
+struct car:
+  price = 10000;
+  name = "volkswagen";
+  owned = true;
 end
 
-add(1, 4);
-print(x);
+print(car);
+print(car.get(price));
+car.set(price = 1234);
+print(car);

@@ -15,6 +15,7 @@ stat
     | 'while' '(' expr ')' 'do:' stat+ 'end'  # WhileStat
     | functionDef                              # FunctionDefStat
     | functionCall ';'                         # FunctionCallStat
+    | 'struct' ID ':' structField* 'end'       # StructDefStat
     | 'return' expr ';'                        # ReturnStat
     ;
 
@@ -34,6 +35,10 @@ argList
     : expr (COMMA expr)*
     ;
 
+structField
+    : ID '=' expr ';'
+    ;
+
 expr
     : expr '==' expr                      # EqExpr
     | LBRACK exprList? RBRACK             # ArrayLiteral
@@ -49,6 +54,8 @@ expr
     | expr '+' expr                       # AddExpr
     | expr '-' expr                       # SubExpr
     | ID (LBRACK expr RBRACK)+            # ArrayAccess
+    | ID '.' 'get' '(' ID ')'             # StructGetExpr
+    | ID '.' 'set' '(' ID '=' expr ')'    # StructSetExpr
     | functionCall                        # FunctionCallExpr
     | INT                                 # IntExpr
     | FLOAT                               # FloatExpr

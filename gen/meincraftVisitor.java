@@ -87,6 +87,13 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionCallStat(meincraftParser.FunctionCallStatContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code StructDefStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStructDefStat(meincraftParser.StructDefStatContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code ReturnStat}
 	 * labeled alternative in {@link meincraftParser#stat}.
 	 * @param ctx the parse tree
@@ -117,6 +124,12 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitArgList(meincraftParser.ArgListContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link meincraftParser#structField}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStructField(meincraftParser.StructFieldContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code AndExpr}
 	 * labeled alternative in {@link meincraftParser#expr}.
@@ -167,6 +180,13 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitXorExpr(meincraftParser.XorExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code StructSetExpr}
+	 * labeled alternative in {@link meincraftParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStructSetExpr(meincraftParser.StructSetExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SubExpr}
 	 * labeled alternative in {@link meincraftParser#expr}.
 	 * @param ctx the parse tree
@@ -208,6 +228,13 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitFalseExpr(meincraftParser.FalseExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code StructGetExpr}
+	 * labeled alternative in {@link meincraftParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStructGetExpr(meincraftParser.StructGetExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ArrayAccess}
 	 * labeled alternative in {@link meincraftParser#expr}.

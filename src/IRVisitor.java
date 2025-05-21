@@ -14,6 +14,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     private final Map<String, Value> variables = new HashMap<>();
     private final Deque<Map<String, Value>> scopes = new ArrayDeque<>();
     private final Map<String, List<Value>> arrays = new HashMap<>();
+    private final Map<String, Map<String, Value>> structs = new HashMap<>();
 
     private final Map<String, FunctionDefContext> functions = new HashMap<>();
     private final Deque<Map<String, Value>> callStack = new ArrayDeque<>();
@@ -526,7 +527,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         Value right = visit(ctx.expr(1));
 
         if (left.type() != right.type()) {
-            throw new RuntimeException("Cannot compare different types: " + left.type() + " vs " + right.type());
+            throw new RuntimeException("Porównanie różnych typów: " + left.type() + " vs " + right.type());
         }
 
         if (left.value() instanceof Number && right.value() instanceof Number) {
@@ -535,10 +536,44 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             return new Value(Type.BOOLEAN, l == r);
         }
 
+        if (left.type() == Type.STRING && right.type() == Type.STRING) {
+            Object lv = left.value();
+            Object rv = right.value();
+
+            // Rozwiąż tylko jeśli value to alias (czyli String i zmienna istnieje)
+            if (lv instanceof String lAlias && variables.containsKey(lAlias)) {
+                lv = resolve(left).value();
+            }
+            if (rv instanceof String rAlias && variables.containsKey(rAlias)) {
+                rv = resolve(right).value();
+            }
+
+            return new Value(Type.BOOLEAN, lv.toString().equals(rv.toString()));
+        }
+
         String tmp = ir.newTmp(); // alloca i1
         ir.declareVariable(tmp, Type.BOOLEAN);
         ir.compareEqual(tmp, left, right); // delegujemy całość do IRGeneratora
         return new Value(Type.BOOLEAN, tmp);
+    }
+
+    private Value resolve(Value v) {
+        Set<String> visited = new HashSet<>();
+
+        while (v.value() instanceof String alias) {
+            if (!visited.add(alias)) {
+                throw new RuntimeException("Cykliczna aliasowa referencja: " + alias);
+            }
+
+            Object raw = variables.get(alias);
+            if (raw instanceof Value inner) {
+                v = inner;
+            } else {
+                throw new RuntimeException("Alias nie ma przypisanej wartosci: " + alias);
+            }
+        }
+
+        return v;
     }
 
     @Override
@@ -604,6 +639,47 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             }
         }
         throw new RuntimeException("Nieznana zmienna: " + name);
+    }
+
+    @Override
+    public Value visitStructDefStat(meincraftParser.StructDefStatContext ctx) {
+        String name = ctx.ID().getText();
+        Map<String, Value> fields = new LinkedHashMap<>();
+        for (StructFieldContext field : ctx.structField()) {
+            String key = field.ID().getText();
+            Value value = visit(field.expr());
+            fields.put(key, value);
+        }
+        structs.put(name, fields);
+        return null;
+    }
+
+    @Override
+    public Value visitStructGetExpr(meincraftParser.StructGetExprContext ctx) {
+        String structName = ctx.ID(0).getText();
+        String fieldName = ctx.ID(1).getText();
+
+        Map<String, Value> struct = structs.get(structName);
+        if (struct == null || !struct.containsKey(fieldName)) {
+            throw new RuntimeException("Brak pola " + fieldName + " w strukturze " + structName);
+        }
+
+        return struct.get(fieldName);
+    }
+
+    @Override
+    public Value visitStructSetExpr(meincraftParser.StructSetExprContext ctx) {
+        String structName = ctx.ID(0).getText();
+        String fieldName = ctx.ID(1).getText();
+        Value value = visit(ctx.expr());
+
+        Map<String, Value> struct = structs.get(structName);
+        if (struct == null) {
+            throw new RuntimeException("Nieznana struktura: " + structName);
+        }
+
+        struct.put(fieldName, value);
+        return new Value(Type.INT, 0);
     }
 
 }
