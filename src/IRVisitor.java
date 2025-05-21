@@ -12,6 +12,7 @@ import java.util.*;
 public class IRVisitor extends meincraftBaseVisitor<Value> {
     private final IRGenerator ir = new IRGenerator();
     private final Map<String, Value> variables = new HashMap<>();
+    private final Deque<Map<String, Value>> scopes = new ArrayDeque<>();
     private final Map<String, List<Value>> arrays = new HashMap<>();
 
     private final Map<String, FunctionDefContext> functions = new HashMap<>();
@@ -25,11 +26,13 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
 
     @Override
     public Value visitProg(ProgContext ctx) {
+        scopes.push(new HashMap<>()); // global
         for (StatContext stat : ctx.stat()) {
             visit(stat);
         }
         ir.finish();
         ir.writeToFile("output.ll");
+        scopes.pop();
         return null;
     }
 
@@ -37,20 +40,40 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     public Value visitAssignStat(AssignStatContext ctx) {
         String varName = ctx.ID().getText();
         Value result = visit(ctx.expr());
-    
+
         System.out.println("Przypisanie: " + varName + " = " + result.value());
-    
+
         if (result.type() == Type.ARRAY) {
             arrays.put(varName, (List<Value>) result.value());
         } else if (result.type() == Type.STRING) {
-            variables.put(varName, result);
+            setVariable(varName, result, false); // global/public
             ir.declareString(varName, (String) result.value());
         } else {
-            variables.put(varName, result);
+            setVariable(varName, result, false);
             ir.declareVariable(varName, result.type());
             ir.assignValue(varName, result);
         }
-    
+
+        return null;
+    }
+
+    @Override
+    public Value visitPrivateAssignStat(meincraftParser.PrivateAssignStatContext ctx) {
+        String varName = ctx.ID().getText();
+        Value value = visit(ctx.expr());
+        System.out.println("Przypisanie: " + varName + " = " + value.value());
+
+        if (value.type() == Type.ARRAY) {
+            arrays.put(varName, (List<Value>) value.value());
+        } else if (value.type() == Type.STRING) {
+            setVariable(varName, value, true); // global/public
+            ir.declareString(varName, (String) value.value());
+        } else {
+            setVariable(varName, value, true);
+            ir.declareVariable(varName, value.type());
+            ir.assignValue(varName, value);
+        }
+
         return null;
     }
 
@@ -182,7 +205,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     @Override
     public Value visitArrayAccess(meincraftParser.ArrayAccessContext ctx) {
         String varName = ctx.ID().getText();
-        Value root = variables.getOrDefault(varName, new Value(Type.ARRAY, new ArrayList<Value>()));
+        Value root = getVariable(varName);
 
         if (root.type() != Type.ARRAY) {
             throw new RuntimeException("Zmiennej " + varName + " nie można indeksować jako tablicy.");
@@ -221,6 +244,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         return new Value(Type.INT, 0); // fallback
     }
 
+
     @Override
     public Value visitIntExpr(IntExprContext ctx) {
         return new Value(Type.INT, Integer.parseInt(ctx.getText()));
@@ -234,13 +258,12 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     @Override
     public Value visitIdExpr(IdExprContext ctx) {
         String varName = ctx.getText();
-    
+
         if (arrays.containsKey(varName)) {
             return new Value(Type.ARRAY, arrays.get(varName));
         }
-    
-        Value raw = variables.getOrDefault(varName, new Value(Type.INT, 0));
-        return raw;
+
+        return getVariable(varName);
     }
 
     @Override
@@ -524,7 +547,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         FunctionDefContext fn = functions.get(name);
         if (fn == null) throw new RuntimeException("Nieznana funkcja: " + name);
 
-        // 1. Parametry i argumenty
         List<String> params = fn.paramList() != null
             ? fn.paramList().ID().stream().map(ParseTree::getText).toList()
             : List.of();
@@ -537,32 +559,51 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             throw new RuntimeException("Argument mismatch: " + name);
         }
 
-        // 2. Przechowujemy aktualne zmienne i wchodzimy w zakres funkcji
-        callStack.push(new HashMap<>(variables));
-        variables.clear();
+        // Nowy lokalny scope
+        scopes.push(new HashMap<>());
 
         for (int i = 0; i < params.size(); i++) {
-            variables.put(params.get(i), args.get(i));
+            scopes.peek().put(params.get(i), args.get(i));
         }
 
-        // 3. Wykonaj ciało funkcji
         Value result = null;
 
         for (StatContext s : fn.stat()) {
             if (s instanceof meincraftParser.ReturnStatContext ret) {
                 result = visit(ret.expr());
-                break; // zakończ funkcję po returnie
+                break;
             } else {
                 visit(s);
             }
         }
 
-        // 4. Przywracamy poprzedni zakres zmiennych
-        variables.clear();
-        variables.putAll(callStack.pop());
+        scopes.pop();
 
-        // 5. Domyślnie zwracamy 0 (jak void)
         return result != null ? result : new Value(Type.INT, 0);
+    }
+
+    private void setVariable(String name, Value value, boolean isPrivate) {
+        if (isPrivate) {
+            scopes.peek().put(name, value);
+        } else {
+            for (Map<String, Value> scope : scopes) {
+                if (scope.containsKey(name)) {
+                    scope.put(name, value);
+                    return;
+                }
+            }
+            // Jeśli nie znaleziono – wrzucamy do aktualnego (czyli globalnego)
+            scopes.getLast().put(name, value);
+        }
+    }
+
+    private Value getVariable(String name) {
+        for (Map<String, Value> scope : scopes) {
+            if (scope.containsKey(name)) {
+                return scope.get(name);
+            }
+        }
+        throw new RuntimeException("Nieznana zmienna: " + name);
     }
 
 }

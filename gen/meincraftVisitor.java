@@ -24,6 +24,13 @@ public interface meincraftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAssignStat(meincraftParser.AssignStatContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code PrivateAssignStat}
+	 * labeled alternative in {@link meincraftParser#stat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrivateAssignStat(meincraftParser.PrivateAssignStatContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code PrintStat}
 	 * labeled alternative in {@link meincraftParser#stat}.
 	 * @param ctx the parse tree

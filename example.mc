@@ -1,8 +1,13 @@
 def add(a, b) as:
-  if (a == b) then:
-    return a+b;
+  x = read;
+  if (x == 1) then:
+    print(a+b);
+  elif (x == 2) then:
+    print(a-b);
+  else:
+    print(a*b);
   end
 end
 
-x = add(5, 5);
+add(1, 4);
 print(x);

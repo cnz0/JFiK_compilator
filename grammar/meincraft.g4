@@ -4,6 +4,7 @@ prog: stat+ ;
 
 stat
     : ID '=' expr ';'                         # AssignStat
+    | 'private' ID '=' expr ';'   # PrivateAssignStat
     | 'print' expr ';'                        # PrintStat
     | ID '=' 'read' ';'                       # ReadStat
     | ID (LBRACK expr RBRACK)+ '=' expr ';'   # ArrayAssignStat
