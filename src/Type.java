@@ -6,5 +6,6 @@ public enum Type {
     ARRAY,
     MATRIX,
     BOOLEAN,
-    STRING
+    STRING,
+    STRUCT
 }

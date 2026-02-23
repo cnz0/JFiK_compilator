@@ -188,12 +188,11 @@ public class IRGenerator {
     public void declareString(String name, String initial) {
         String escaped = initial.replace("\\", "\\5C").replace("\"", "\\22");
         builder.append("  %").append(name).append(" = alloca [").append(escaped.length() + 1).append(" x i8]\n");
-        // nie inicjalizujemy, bo read nadpisze
     }
     
     public void printRawString(String value) {
         String label = ".str" + newTmp();
-        int len = value.length() + 2; // \n + \0
+        int len = value.length() + 2;
     
         String escaped = value.replace("\\", "\\5C").replace("\"", "\\22");
         builder.insert(0, "@" + label + " = constant [" + len + " x i8] c\"" + escaped + "\\0A\\00\"\n");
@@ -201,14 +200,13 @@ public class IRGenerator {
         String tmp = newTmp();
         builder.append("  %").append(tmp).append(" = getelementptr inbounds [")
                .append(len).append(" x i8], [").append(len).append(" x i8]* @")
-               .append(label).append(", i32 0, i32 0\n"); // 🛠️ bez nawiasu na końcu!
+               .append(label).append(", i32 0, i32 0\n");
     
         builder.append("  call i32 (i8*, ...) @printf(i8* %").append(tmp).append(")\n");
     }
     
     
     public void readString(String name) {
-        // Bufor 100 znaków – wystarczająco?
         builder.append("  call i32 (i8*, ...) @scanf(i8* getelementptr ")
                .append("([3 x i8], [3 x i8]* @scanf_fmt, i32 0, i32 0), [100 x i8]* %")
                .append(name).append(")\n");
@@ -295,7 +293,7 @@ public class IRGenerator {
         String lval = loadValue(left);
         String rval = loadValue(right);
 
-        String cmpTmp = newTmp(); // zamiast tmp
+        String cmpTmp = newTmp();
         builder.append("  %").append(cmpTmp)
             .append(" = icmp eq i32 %").append(lval)
             .append(", %").append(rval).append("\n");
@@ -306,7 +304,7 @@ public class IRGenerator {
 
     public String loadValue(Value v) {
         if (v.value() instanceof String alias) {
-            String tmp = newTmp();  // ZAWSZE nowy tmp
+            String tmp = newTmp();
             switch (v.type()) {
                 case INT -> builder.append("  %").append(tmp).append(" = load i32, i32* %").append(alias).append("\n");
                 case FLOAT -> builder.append("  %").append(tmp).append(" = load double, double* %").append(alias).append("\n");

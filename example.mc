@@ -6,5 +6,5 @@ end
 
 print(car);
 print(car.get(price));
-car.set(price = 1234);
-print(car);
+tmp = car.set(price = 1234);
+print(car.get(price));

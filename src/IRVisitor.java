@@ -49,6 +49,8 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         } else if (result.type() == Type.STRING) {
             setVariable(varName, result, false); // global/public
             ir.declareString(varName, (String) result.value());
+        } else if (result.type() == Type.STRUCT) {
+            variables.put(varName, result);
         } else {
             setVariable(varName, result, false);
             ir.declareVariable(varName, result.type());
@@ -136,6 +138,19 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
         } else if (result.type() == Type.BOOLEAN) {
             ir.printBoolean((Boolean) result.value());
         }
+
+        else if (result.type() == Type.STRUCT) {
+            Map<String, Value> fields = (Map<String, Value>) result.value();
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+            for (Value v : fields.values()) {
+                if (!first) sb.append(", ");
+                sb.append(v.value());
+                first = false;
+            }
+            sb.append("]");
+            ir.printRawString(sb.toString());
+        }
     
         return null;
     }
@@ -144,20 +159,19 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     public Value visitReadStat(ReadStatContext ctx) {
         String varName = ctx.ID().getText();
     
-        // Zakładamy, że user może wprowadzić dowolny typ — przechowujemy jako STRING na poziomie JVM
         Type type = Type.STRING;
     
-        ir.declareString(varName, "");         // zaalokuj zmienną jako string
-        ir.readString(varName);                // wygeneruj kod LLVM do odczytu stringa
+        ir.declareString(varName, "");
+        ir.readString(varName);
     
-        variables.put(varName, new Value(type, varName));  // zapamiętaj w JVM jako string z nazwą IR
+        variables.put(varName, new Value(type, varName));
         return null;
     }
 
     @Override
     public Value visitArrayAssignStat(meincraftParser.ArrayAssignStatContext ctx) {
         String varName = ctx.ID().getText();
-        int levels = ctx.expr().size() - 1; // ostatni expr to przypisywana wartość
+        int levels = ctx.expr().size() - 1;
         List<Integer> indices = new ArrayList<>();
     
         for (int i = 0; i < levels; i++) {
@@ -165,14 +179,12 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             indices.add(((Number) idxVal.value()).intValue());
         }
     
-        Value value = visit(ctx.expr(levels)); // wartość przypisywana
+        Value value = visit(ctx.expr(levels));
     
-        // Uzyskaj referencję do tablicy lub macierzy
         List<Value> current = arrays.computeIfAbsent(varName, k -> new ArrayList<>());
     
         for (int i = 0; i < indices.size() - 1; i++) {
             int idx = indices.get(i);
-            // Rozszerz jeśli potrzebne
             while (current.size() <= idx) current.add(new Value(Type.ARRAY, new ArrayList<Value>()));
             Value nested = current.get(idx);
     
@@ -184,14 +196,12 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             current = (List<Value>) nested.value();
         }
     
-        // Ustaw na ostatnim poziomie
         int lastIndex = indices.get(indices.size() - 1);
         while (current.size() <= lastIndex) {
             current.add(new Value(value.type(), 0));
         }
         current.set(lastIndex, value);
     
-        // Opcjonalnie: możesz generować IR tylko dla typów prostych
         if (value.type() != Type.ARRAY) {
             String irName = "arr_" + varName + "_" + String.join("_",
                 indices.stream().map(String::valueOf).toArray(String[]::new)
@@ -220,7 +230,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             if (current instanceof List<?> list && index < list.size()) {
                 current = ((Value) list.get(index)).value();
             } else {
-                return new Value(Type.INT, 0); // domyślna wartość przy błędzie
+                return new Value(Type.INT, 0);
             }
         }
 
@@ -242,7 +252,7 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             return new Value(Type.ARRAY, list);
         }
 
-        return new Value(Type.INT, 0); // fallback
+        return new Value(Type.INT, 0);
     }
 
 
@@ -260,11 +270,17 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
     public Value visitIdExpr(IdExprContext ctx) {
         String varName = ctx.getText();
 
-        if (arrays.containsKey(varName)) {
-            return new Value(Type.ARRAY, arrays.get(varName));
+        for (Map<String, Value> scope : scopes) {
+            if (scope.containsKey(varName)) {
+                return scope.get(varName);
+            }
         }
 
-        return getVariable(varName);
+        if (structs.containsKey(varName)) {
+            return new Value(Type.STRUCT, structs.get(varName));
+        }
+
+        throw new RuntimeException("Nieznana zmienna lub struktura: " + varName);
     }
 
     @Override
@@ -323,12 +339,11 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             return new Value(Type.BOOLEAN, Boolean.parseBoolean(input));
         }
     
-        // w każdym innym wypadku → traktuj jako string
+        // w każdym innym wypadku - traktuj jako string
         return new Value(Type.STRING, input);
     }
 
     private Value promoteAndApply(String op, Value left, Value right) {
-        // Promocja bool na int (jeśli występuje)
         if (left.type() == Type.BOOLEAN) {
             left = new Value(Type.INT, (boolean) left.value() ? 1 : 0);
         }
@@ -336,7 +351,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             right = new Value(Type.INT, (boolean) right.value() ? 1 : 0);
         }
     
-        // Obsługa floatów
         if (left.type() == Type.FLOAT || right.type() == Type.FLOAT) {
             double l = left.type() == Type.FLOAT ? (double) left.value() : ((Number) left.value()).doubleValue();
             double r = right.type() == Type.FLOAT ? (double) right.value() : ((Number) right.value()).doubleValue();
@@ -349,7 +363,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             });
         }
     
-        // Obsługa intów
         if (left.type() == Type.INT && right.type() == Type.INT) {
             int l = (int) left.value();
             int r = (int) right.value();
@@ -361,7 +374,10 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
                 default -> 0;
             });
         }
-    
+        if (left.type() == Type.STRUCT || right.type() == Type.STRUCT) {
+            throw new RuntimeException("Nie można wykonywać operacji arytmetycznych na strukturach");
+        }
+            
         throw new RuntimeException("Nieobsługiwany typ operacji arytmetycznej: " + op);
     }
 
@@ -426,8 +442,8 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
 
     @Override
     public Value visitStringExpr(meincraftParser.StringExprContext ctx) {
-        String raw = ctx.getText(); // np. "\"hello\""
-        String value = raw.substring(1, raw.length() - 1); // usuń cudzysłowy
+        String raw = ctx.getText();
+        String value = raw.substring(1, raw.length() - 1);
         return new Value(Type.STRING, value);
     }
 
@@ -491,32 +507,20 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             throw new RuntimeException("FOR range bounds must be integers.");
         }
 
-        ir.declareVariable(loopVar, Type.INT);
-        ir.assignValue(loopVar, startVal);
-        variables.put(loopVar, new Value(Type.INT, loopVar));
+        scopes.push(new HashMap<>());
 
-        String loopId = ir.newTmp(); 
-        String condVar = ir.newTmp();
-        String loopStart = "for_start_" + loopId;
-        String loopBody = "for_body_" + loopId;
-        String loopEnd = "for_end_" + loopId;
+        int start = startVal.asInt();
+        int end = endVal.asInt();
+        int step = (start <= end) ? 1 : -1;
 
-        ir.branch(loopStart);
-        ir.label(loopStart);
-        ir.declareVariable(condVar, Type.BOOLEAN);
-
-        ir.compareForLoop(loopVar, startVal, endVal, condVar);
-        ir.ifStart(condVar, loopBody, loopEnd, Type.BOOLEAN);
-
-        ir.label(loopBody);
-        for (meincraftParser.StatContext stat : ctx.stat()) {
-            visit(stat);
+        for (int i = start; step > 0 ? i <= end : i >= end; i += step) {
+            scopes.peek().put(loopVar, new Value(Type.INT, i));
+            for (meincraftParser.StatContext stat : ctx.stat()) {
+                visit(stat);
+            }
         }
 
-        ir.incrementLoopVar(loopVar, startVal, endVal);
-        ir.branch(loopStart);
-        ir.label(loopEnd);
-
+        scopes.pop();
         return null;
     }
 
@@ -540,7 +544,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             Object lv = left.value();
             Object rv = right.value();
 
-            // Rozwiąż tylko jeśli value to alias (czyli String i zmienna istnieje)
             if (lv instanceof String lAlias && variables.containsKey(lAlias)) {
                 lv = resolve(left).value();
             }
@@ -551,9 +554,9 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             return new Value(Type.BOOLEAN, lv.toString().equals(rv.toString()));
         }
 
-        String tmp = ir.newTmp(); // alloca i1
+        String tmp = ir.newTmp();
         ir.declareVariable(tmp, Type.BOOLEAN);
-        ir.compareEqual(tmp, left, right); // delegujemy całość do IRGeneratora
+        ir.compareEqual(tmp, left, right);
         return new Value(Type.BOOLEAN, tmp);
     }
 
@@ -594,7 +597,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
             throw new RuntimeException("Argument mismatch: " + name);
         }
 
-        // Nowy lokalny scope
         scopes.push(new HashMap<>());
 
         for (int i = 0; i < params.size(); i++) {
@@ -627,7 +629,6 @@ public class IRVisitor extends meincraftBaseVisitor<Value> {
                     return;
                 }
             }
-            // Jeśli nie znaleziono – wrzucamy do aktualnego (czyli globalnego)
             scopes.getLast().put(name, value);
         }
     }
