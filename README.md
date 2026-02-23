@@ -41,10 +41,21 @@ This project was developed as part of a university course on interpreters and co
 2. **Running the project:**
    ```bash
    ./make.ps1
+   ```
+
+   ```text
+   This powershell file, compiles Java, and creates IR format: output.ll file, which is then used in command below in order to compile the .mc file
+   ```
+
+   ```bash
+   .\meincraft.exe
+   ```
 
 3. **Examples:**
 ```text
-# IF statemet: #
+Edit within example.mc file!
+
+# IF statement: #
     
 x = read;
 if (x == 1) then:
