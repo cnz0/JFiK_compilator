@@ -44,7 +44,7 @@ This project was developed as part of a university course on interpreters and co
 
 3. **Examples:**
 ```text
-### IF statemet:
+# IF statemet: #
     
 x = read;
 if (x == 1) then:
@@ -55,13 +55,13 @@ else:
   print("other");
 end
 
-### FOR loop:
+# FOR loop: #
 
 for (i = 0 to i = 3) do:
   print(i);
 end
 
-### Function:
+# Function: #
 
 def add(a, b) as:
   return a + b;
@@ -70,7 +70,7 @@ end
 x = add(3, 7);
 print(x);
 
-### Define Variables scope:
+# Define Variables scope: #
 
 x = 99;
 
@@ -82,7 +82,7 @@ end
 example();
 print(x);
 
-### Structure:
+# Structure: #
 
 struct car:
   price = 10000;
