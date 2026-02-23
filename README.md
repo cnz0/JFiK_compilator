@@ -132,8 +132,7 @@ print(car.get(price));
 ```
 
 ## What I Learned ##
-- Designing a full compilation pipeline (source → AST → IR → native)
-- Implementing lexical scope resolution
+- Designing a full compilation pipeline (source -> AST -> IR -> native)
 - Managing runtime value representation
 - Generating low-level LLVM IR code
 - Structuring a multi-stage compiler architecture
