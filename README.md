@@ -44,7 +44,7 @@ This project was developed as part of a university course on interpreters and co
 
 3. **Examples:**
 ```text
-if statemets:
+### IF statemet:
     
 x = read;
 if (x == 1) then:
@@ -55,13 +55,13 @@ else:
   print("other");
 end
 
-for loop:
+### FOR loop:
 
 for (i = 0 to i = 3) do:
   print(i);
 end
 
-function:
+### Function:
 
 def add(a, b) as:
   return a + b;
@@ -70,7 +70,7 @@ end
 x = add(3, 7);
 print(x);
 
-variables scope:
+### Define Variables scope:
 
 x = 99;
 
@@ -82,7 +82,7 @@ end
 example();
 print(x);
 
-structure:
+### Structure:
 
 struct car:
   price = 10000;
