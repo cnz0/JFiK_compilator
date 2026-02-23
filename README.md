@@ -24,7 +24,7 @@ This project was developed as part of a university course on interpreters and co
   - Generates valid LLVM IR
   - Can be compiled and executed using `clang`
 
-## 🛠 Requirements
+## Requirements
 
 - Java 17+
 - [ANTLR4](https://www.antlr.org/) (for parser generation)
